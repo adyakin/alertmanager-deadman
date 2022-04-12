@@ -10,7 +10,7 @@ COPY *.go ./
 RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-s -w -static"' -o /deadman
 
 # generate clean, final image for end users
-FROM docker-hub/alpine:3.15
+FROM alpine:3.15
 
 COPY --from=builder /deadman /deadman
 
