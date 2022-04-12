@@ -8,8 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -46,8 +45,8 @@ func init() {
 	)
 }
 
-func NewDeadMan(pinger <-chan time.Time, interval time.Duration, amURL string, logger log.Logger) (*Deadman, error) {
-	return newDeadMan(pinger, interval, amNotifier(amURL), logger), nil
+func NewDeadMan(pinger <-chan time.Time, interval time.Duration, amURL string, labelConfig *Config, logger log.Logger) (*Deadman, error) {
+	return newDeadMan(pinger, interval, amNotifier(amURL, labelConfig, logger), logger), nil
 }
 
 type Deadman struct {
@@ -67,6 +66,7 @@ func newDeadMan(pinger <-chan time.Time, interval time.Duration, notifier func()
 		interval: interval,
 		notifier: notifier,
 		closer:   make(chan struct{}),
+		logger:   logger,
 	}
 }
 
@@ -84,7 +84,7 @@ func (d *Deadman) Run() error {
 				ticksNotified.Inc()
 				if err := d.notifier(); err != nil {
 					failedNotifications.Inc()
-					level.Error(d.logger).Log("err", err)
+					d.logger.Printf("err: %v\n", err)
 				}
 			}
 			skip = false
@@ -93,11 +93,9 @@ func (d *Deadman) Run() error {
 			skip = true
 
 		case <-d.closer:
-			break
+
 		}
 	}
-
-	return nil
 }
 
 func (d *Deadman) Stop() {
@@ -108,20 +106,32 @@ func (d *Deadman) Stop() {
 	d.closer <- struct{}{}
 }
 
-func amNotifier(amURL string) func() error {
+func amNotifier(amURL string, cfg *Config, logger log.Logger) func() error {
+
+	labels := model.LabelSet{}
+	for k, v := range cfg.Labels {
+		labels[model.LabelName(k)] = model.LabelValue(v)
+	}
+
+	annotations := model.LabelSet{}
+	for k, v := range cfg.Annotations {
+		annotations[model.LabelName(k)] = model.LabelValue(v)
+	}
 	alerts := []*model.Alert{{
-		Labels: model.LabelSet{
-			model.LabelName("alertname"): model.LabelValue("DeadmanDead"),
-		},
+		Labels:      labels,
+		Annotations: annotations,
 	}}
+	logger.Printf("Using alerts labels: %v\n", alerts[len(alerts)-1].Labels)
+	logger.Printf("Using annotations: %v\n", alerts[len(alerts)-1].Annotations)
 
 	b, err := json.Marshal(alerts)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+		logger.Printf("Failed to mashal alert: %v\n", err)
 		os.Exit(2)
 	}
 
 	return func() error {
+		logger.Printf("Sending notification to %s\n", amURL)
 		client := &http.Client{}
 		resp, err := client.Post(amURL, "application/json", bytes.NewReader(b))
 		if err != nil {

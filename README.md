@@ -1,14 +1,19 @@
 # Deadman's Snitch.
 
+**Based on gouthamve/deadman with minor changes:**
+- allow alert configuration via config file
+- helm chart
+
+
 A dead simple snitch for the Prometheus Alertmanager. An external service is needed
 with deadman's snitch functionality to make sure the alerting pipeline is working.
 I could not find anything simple to use, so I made one.
 
-To install: `go get github.com/gouthamve/deadman`
+
+To install: `make build`
 
 To run: `./deadman -h`
 
-To build Docker Image : `make docker`
 
 Add this rule to the Prometheus server to continuously generate alerts:
 ```
@@ -36,6 +41,19 @@ deployed deadman process.
 - name: deadmans-switch
   webhook_configs:
   - url: http://deadman-ip:9095
+```
+
+Create `config.yml` with required labes/annotations:
+
+```yaml
+labels:
+  alertname: "DeadManDead"
+  tier: "infra"
+  application: "deadman"
+  team: "devops"
+  instance: "alertmanager-1"
+annotations:
+  description: "This alert fired when no watchdog alert received from alertmanager. Check prometheus and alertmanager at {{ $labels.instance }}."
 ```
 
 Run an alertmanager co-located with the deadman process which will notify you for

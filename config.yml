@@ -1,0 +1,8 @@
+labels:
+  alertname: "DeadManDead"
+  tier: "infra"
+  application: "deadman"
+  team: "devops"
+  instance: "alertmanager-1"
+annotations:
+  description: "This alert fired when no watchdog alert received from alertmanager. Check prometheus and alertmanager at {{ $labels.instance }}."

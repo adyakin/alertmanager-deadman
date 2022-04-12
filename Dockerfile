@@ -1,13 +1,19 @@
-FROM golang:alpine as builder
+FROM golang:1.18-alpine AS builder
+WORKDIR /app
 
-WORKDIR /go/src/github.com/gouthamve/deadman
-COPY . .
+COPY go.* ./
+RUN env
+RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-s -w -static"' .
+COPY *.go ./
 
-FROM scratch
-COPY --from=builder /go/bin/deadman /usr/local/bin/deadman
+RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-s -w -static"' -o /deadman
 
+# generate clean, final image for end users
+FROM docker-hub/alpine:3.15
+
+COPY --from=builder /deadman /deadman
+
+USER 1000
 EXPOSE 9095
-
-ENTRYPOINT ["/usr/local/bin/deadman"]
+ENTRYPOINT ["/deadman"]
