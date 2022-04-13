@@ -11,7 +11,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/common/promlog"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -19,7 +18,6 @@ func main() {
 	cfg := struct {
 		amURL      string
 		interval   model.Duration
-		logLevel   promlog.AllowedLevel
 		configPath string
 		port       uint
 	}{}

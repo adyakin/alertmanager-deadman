@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/common/promlog"
+	"log"
+	"os"
 )
 
 func TestDeadManDoesntTrigger(t *testing.T) {
@@ -12,11 +13,12 @@ func TestDeadManDoesntTrigger(t *testing.T) {
 	defer pinger.Stop()
 
 	called := false
-	logger := promlog.New(promlog.AllowedLevel{})
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+
 	d := newDeadMan(pinger.C, 20*time.Millisecond, func() error {
 		called = true
 		return nil
-	}, logger)
+	}, *logger)
 
 	go d.Run()
 	defer d.Stop()
@@ -32,11 +34,12 @@ func TestDeadManTriggers(t *testing.T) {
 	defer pinger.Stop()
 
 	called := false
-	logger := promlog.New(promlog.AllowedLevel{})
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
+
 	d := newDeadMan(pinger.C, 20*time.Millisecond, func() error {
 		called = true
 		return nil
-	}, logger)
+	}, *logger)
 
 	go d.Run()
 	defer d.Stop()
