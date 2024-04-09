@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine AS builder
+FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 COPY go.* ./
@@ -10,7 +10,7 @@ COPY *.go ./
 RUN CGO_ENABLED=0 go build -a -ldflags '-extldflags "-s -w -static"' -o /deadman
 
 # generate clean, final image for end users
-FROM alpine:3.15
+FROM alpine:3.19
 
 COPY --from=builder /deadman /deadman
 
